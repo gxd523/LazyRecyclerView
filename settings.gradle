@@ -1,0 +1,3 @@
+rootProject.name='LazyRecyclerView'
+include ':app'
+include ':library'
