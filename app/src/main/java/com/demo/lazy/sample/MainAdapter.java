@@ -20,6 +20,6 @@ public class MainAdapter extends LazyAdapter<Integer> {
     @NonNull
     @Override
     public LazyViewHolder<Integer> onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return new MainViewHolder(parent);
+        return new MainViewHolder(parent, this);
     }
 }

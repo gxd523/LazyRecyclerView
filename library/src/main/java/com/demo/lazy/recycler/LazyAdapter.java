@@ -11,26 +11,26 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 /**
- * Created by guoxiaodong on 2020/4/8 13:05
+ * 核心类
  */
 public abstract class LazyAdapter<T> extends RecyclerView.Adapter<LazyViewHolder<T>> {
     private List<T> dataList;
     private Set<LazyViewHolder<T>> viewHolderSet;
-    private LazyRunnable lazyRunnable;
+    private LazyRunnable<T> lazyRunnable;
     private RecyclerView recyclerView;
-
-    public LazyAdapter() {
-    }
 
     public LazyAdapter(List<T> dataList) {
         this.dataList = dataList;
     }
 
+    /**
+     * 如果只有一种类型，holder只会创建一屏个数，然后回收复用
+     */
     @Override
     public void onBindViewHolder(@NonNull LazyViewHolder<T> holder, int position) {
-        holder.onBindViewHolder(dataList.get(position), position);
+        holder.onBindViewHolder(position);
         if (recyclerView.getScrollState() == RecyclerView.SCROLL_STATE_IDLE) {// 初始状态
-            holder.onLazyBindViewHolder(dataList.get(position), position);
+            holder.onLazyBindViewHolder(position);
         } else {
             viewHolderSet.add(holder);
         }
@@ -43,7 +43,7 @@ public abstract class LazyAdapter<T> extends RecyclerView.Adapter<LazyViewHolder
             @Override
             public void onViewAttachedToWindow(View v) {
                 viewHolderSet = new HashSet<>();
-                lazyRunnable = new LazyRunnable<>(viewHolderSet, dataList);
+                lazyRunnable = new LazyRunnable<>(viewHolderSet);
                 ((RecyclerView) v).addOnScrollListener(new RecyclerView.OnScrollListener() {
                     @Override
                     public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
@@ -93,23 +93,21 @@ public abstract class LazyAdapter<T> extends RecyclerView.Adapter<LazyViewHolder
 
     private static class LazyRunnable<T> implements Runnable {
         private WeakReference<Set<LazyViewHolder<T>>> viewHolderSetRef;
-        private WeakReference<List<T>> dataListRef;
 
-        LazyRunnable(Set<LazyViewHolder<T>> viewHolderSet, List<T> dataList) {
+        LazyRunnable(Set<LazyViewHolder<T>> viewHolderSet) {
             this.viewHolderSetRef = new WeakReference<>(viewHolderSet);
-            this.dataListRef = new WeakReference<>(dataList);
         }
 
         @Override
         public void run() {
-            Set<LazyViewHolder<T>> viewHolderSet = this.viewHolderSetRef.get();
-            List<T> dataList = dataListRef.get();
-            if (viewHolderSet != null && dataList != null) {
-                for (LazyViewHolder<T> viewHolder : viewHolderSet) {
-                    viewHolder.onLazyBindViewHolder(dataList.get(viewHolder.getAdapterPosition()), viewHolder.getAdapterPosition());
-                }
-                viewHolderSet.clear();
+            Set<LazyViewHolder<T>> viewHolderSet = viewHolderSetRef.get();
+            if (viewHolderSet == null || viewHolderSet.isEmpty()) {
+                return;
             }
+            for (LazyViewHolder<T> viewHolder : viewHolderSet) {
+                viewHolder.onLazyBindViewHolder(viewHolder.getAdapterPosition());
+            }
+            viewHolderSet.clear();
         }
     }
 }
